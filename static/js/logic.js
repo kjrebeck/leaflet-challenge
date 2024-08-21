@@ -4,13 +4,14 @@
 function markerSize(mag){
   let radius = 1;
 
-  if (mag > 6){
+  if (mag >= 6){
     radius = mag ** 7
   } else if (mag > 0){
-    radius = mag ** 7.5
+    radius = mag ** 8
   }
   return radius;
 }
+
 
 //Marker Color Function
 function markerColor(depth) {
@@ -34,6 +35,7 @@ function markerColor(depth) {
   // return color
   return (color);
 }
+
 
 // BUILD MAP FUNCTION
 function buildMap(data, geo_data) {
@@ -61,8 +63,12 @@ function buildMap(data, geo_data) {
   
   
   //STEP 2: OVERLAY LAYERS 
-  //Markers
+
+  //Clustered Markers
   let markers = L.markerClusterGroup();
+
+  //Non Clustered Markers
+  let nonClusteredMarkers = L.layerGroup();
 
   //Lists to store coords
   let heatArray = [];
@@ -83,13 +89,11 @@ function buildMap(data, geo_data) {
       //marker with special icon
       let marker = L.marker(point,  { 
         icon: L.ExtraMarkers.icon({
-          shape: 'penta',
-          markerColor: "royalblue",
+          shape: 'circle',
+          markerColor: 'violet',
           prefix: 'fa',
           icon: 'fa-spinner',
           iconRotate: 0,
-          extraClasses: 'fa-spin',
-          number: '',
           svg: true
         })
       });
@@ -101,6 +105,7 @@ function buildMap(data, geo_data) {
                     <h3>Depth: ${depth} km</h3><hr>`;
       marker.bindPopup(popup);
       markers.addLayer(marker);
+      nonClusteredMarkers.addLayer(marker);
 
       // add to heatmap
       heatArray.push(point);
@@ -110,7 +115,7 @@ function buildMap(data, geo_data) {
         radius: markerSize(magnitude),
         color: markerColor(depth),
         fillColor: markerColor(depth),
-        fillOpacity: 0.8
+        fillOpacity: 0.9
       }).bindPopup(popup);
 
       // add circle to map
@@ -120,8 +125,16 @@ function buildMap(data, geo_data) {
 
   //Create Heatmap Layer
   let heatLayer = L.heatLayer(heatArray, {
-    radius: 40,
-    blur: 20
+    radius: 15,     
+    blur: 10,         
+    maxZoom: 12,      
+    max: 1.0,           
+    minOpacity: 0.3,   
+    gradient: {     
+        0.4: 'blue',
+        0.6: 'lime',
+        0.8: 'yellow'
+    }
   });
 
   //Create Circle Layer
@@ -146,7 +159,8 @@ function buildMap(data, geo_data) {
 
   // Overlay Controls
   let overlayLayers = {
-    Markers: markers,
+    "Markers (Cluster)": markers,
+    "Markers (All)": nonClusteredMarkers,
     Heatmap: heatLayer,
     Circles: circleLayer,
     "Tectonic Plates": platesLayer
@@ -156,7 +170,7 @@ function buildMap(data, geo_data) {
   let myMap = L.map("map", {
     center: [27.5531, 52.8805],
     zoom: 2,
-    layers: [darkMatter, circleLayer, platesLayer]
+    layers: [darkMatter, platesLayer, circleLayer]
   });
   
   //STEP 5: LAYER CONTORL FILTER
@@ -164,6 +178,7 @@ function buildMap(data, geo_data) {
 
   //STEP 6: LEGEND - in HTML
 }
+
 
 //FETCH DATA & RENDER MAP
 function runIt() {
